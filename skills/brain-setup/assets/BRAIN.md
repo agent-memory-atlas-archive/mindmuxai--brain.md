@@ -42,7 +42,7 @@ Resolve `<brain-page-skill-bundle>` to wherever the brain-page skill is installe
 
 **Where the brain lives.** The CLI resolves the brain directory itself, so every command is location-independent:
 
-1. If `./.mindmux/preferences.json` exists and has a `brainRoot` field, that path is the brain root (it contains `pages/` and the six root pages). It may be absolute (e.g. a MindMux-managed sidecar like `/Users/me/Work/myproject-brain`) or relative to the project root.
+1. If `./.mindmux/preferences.json` exists and has a `brainRoot` field, that path is the brain root (it contains `pages/` and any on-demand root pages). It may be absolute (e.g. a MindMux-managed sidecar like `/Users/me/Work/myproject-brain`) or relative to the project root.
 2. Otherwise the brain is `./brain`.
 
 A missing file, broken JSON, or absent `brainRoot` all fall back silently to `./brain`. Run `brain brain-dir` to see the resolved directory, which rule produced it (`source:`), and whether that location already exists and is `populated:`. There is **exactly one brain, at the resolved location** — tools never create a second local `./brain` when `brainRoot` redirects elsewhere.
@@ -53,9 +53,9 @@ A missing file, broken JSON, or absent `brainRoot` all fall back silently to `./
 
 `brain/` holds a few distinct kinds of files. Don't conflate them.
 
-### 1. Root pages (`brain/*.md`) — project-level deliverables (a fixed set of six)
+### 1. Root pages (`brain/*.md`) — on-demand project-level deliverables (six fixed slots)
 
-Project-wide, structured, always present:
+Project-wide and structured when meaningful knowledge exists. New brains start with none:
 
 | slug | file | role | typical content |
 |------|------|------|-----------------|
@@ -68,7 +68,7 @@ Project-wide, structured, always present:
 
 Rules:
 
-- **Fixed in number — only updated, never created.** Rewrite one with `brain update-root <slug>` (body on stdin). The CLI regenerates the frontmatter and guarantees the canonical H1 heading.
+- **Fixed in number, on-demand in presence.** `brain update-root <slug>` creates or rewrites one slot from stdin. The body must start with an authored `# Title`; the CLI regenerates frontmatter and derives the displayed title from that H1.
 - **No timeline** — a root page's history is carried by git.
 - **Read** a root page with `brain read-root <slug>`.
 - Lean on ` ```mermaid ` code blocks (graph / sequenceDiagram / mindmap / gantt) to make the content visual.
@@ -124,7 +124,7 @@ Use `[[page-id]]` only when the identifier truly is the id of a brain page (it a
 Skills are reusable operating manuals for working with `brain/`. They are not knowledge deliverables; they are "how to do it" rulebooks for the AI, installed into each agent's global skills directory (so Claude Code, Codex, and others share them). This standard ships four:
 
 - **brain-setup** — ensure `BRAIN.md` is in the project root; resolve the brain data location with `brain brain-dir` (brainRoot-aware) and scaffold the `brain/` skeleton there only if that location is empty — never a second local `./brain` when `brainRoot` redirects to an external directory. Then **default-wire** `CLAUDE.md` + `AGENTS.md` via `brain wire` (or prefer the one-shot `brain init`), and optionally install a pre-commit hook and a Claude Code or Codex SessionStart hook (`brain install-hooks [--agent codex]`).
-- **brain-bootstrap** — seed a freshly-scaffolded brain with real project knowledge: on an existing project, read the code / docs / `git log` to draft the six root pages and capture key decisions; on an empty project, interview the user. All writes go through the `brain` CLI. Run it after **brain-setup**.
+- **brain-bootstrap** — seed a freshly-scaffolded brain with real project knowledge: on an existing project, read the code / docs / `git log`, then create only root pages with meaningful evidence-backed content and capture key decisions; on an empty project, interview the user. All writes go through the `brain` CLI. Run it after **brain-setup**.
 - **brain-page** — the operating manual for reading and writing pages + root pages; this is the bundle that carries the `brain` CLI. **Read it before creating or modifying any page.**
 - **brain-ingest** — the process for digesting a conversation / document / research result and writing it down through the `brain` CLI.
 
@@ -156,7 +156,7 @@ This standard grew out of a tool-call-based brain system. Here, **every read and
 | `append_timeline` | `brain append-timeline --id <id> --kind <k> --summary "<s>" [--source] [--affects]` — appends at the end of the timeline only (append-only). |
 | `archive_page` | `brain archive-page --id <id> [--reversal-summary "<s>"]` — sets `status: archived`, optionally appends a `kind: reversal` entry, reindexes. |
 | `set_page_tags` | `brain set-tags --id <id> --tags a,b,c` — rewrites the frontmatter tags, reindexes. |
-| `update_root_page` | `brain update-root <slug>` with the body on **stdin** — rewrites `brain/<slug>.md` wholesale, regenerates frontmatter, guarantees the canonical H1; root pages have no timeline. |
+| `update_root_page` | `brain update-root <slug>` with the body on **stdin** — creates or rewrites `brain/<slug>.md` wholesale, regenerates frontmatter, and requires an authored H1; root pages have no timeline. |
 | `reindex` / `lint-links` | `brain reindex` / `brain lint-links`. `lint-links` checks Page `compiled_truth` and root page bodies as current knowledge; Page timeline entries are append-only provenance and are not linted. |
 | scaffold a project | `brain init` — ensures `BRAIN.md`, scaffolds empty brain data (brainRoot-aware), default-wires `CLAUDE.md` + `AGENTS.md`. |
 | wire an agent's config | `brain wire` (default) or `brain wire --agent <claude-code\|codex\|opencode\|cursor\|pi\|all>` — writes the unified brain block into `./CLAUDE.md` / `./AGENTS.md` (see below). |

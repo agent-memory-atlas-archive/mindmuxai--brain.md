@@ -125,7 +125,7 @@ brain set-tags --id <id> --tags a,b,c
 echo "<root page body markdown>" | brain update-root <slug>
 ```
 
-`<slug>` must be one of the six fixed root pages: `background` / `architecture` / `flow` / `mindmap` / `stack` / `roadmap`. The CLI validates the slug, rewrites the whole `brain/<slug>.md`, regenerates the frontmatter, and **guarantees the canonical H1 heading** is present. Root pages have **no timeline** — their history lives in git. Lean on ` ```mermaid ` blocks (graph / sequenceDiagram / mindmap / gantt) to keep them visual.
+`<slug>` must be one of the six fixed storage slots: `background` / `architecture` / `flow` / `mindmap` / `stack` / `roadmap`. A slot is created only when there is meaningful knowledge to write. The body must start with an authored `# Title`; the CLI derives frontmatter title from that heading and never substitutes a slug-based title. Root pages have **no timeline** — their history lives in git. Lean on ` ```mermaid ` blocks (graph / sequenceDiagram / mindmap / gantt) to keep them visual.
 
 ### Index / checks
 
