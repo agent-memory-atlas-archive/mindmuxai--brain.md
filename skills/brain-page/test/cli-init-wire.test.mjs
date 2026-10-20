@@ -193,7 +193,7 @@ test("init creates BRAIN.md, scaffolds brain, and default-wires agent files", (t
   assert.match(r.stdout, /init done/);
 
   assert.ok(existsSync(join(project, "BRAIN.md")));
-  assert.ok(existsSync(join(project, "brain", "background.md")));
+  assert.ok(!existsSync(join(project, "brain", "background.md")));
   assert.ok(existsSync(join(project, "brain", "pages")));
   assert.ok(existsSync(join(project, "CLAUDE.md")));
   assert.ok(existsSync(join(project, "AGENTS.md")));
@@ -246,6 +246,116 @@ test("init --no-wire skips agent config files", (t) => {
   assert.ok(!existsSync(join(project, "AGENTS.md")));
 });
 
+test("update-root creates an on-demand root page and preserves its authored title", (t) => {
+  const project = makeEmptyProject(t);
+  let r = runBrain(project, ["init", "--no-wire"]);
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  r = runBrain(project, ["update-root", "background"], {
+    input: "# Notes that matter\n\nA real reason to create this page.\n",
+  });
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  const root = readFileSync(join(project, "brain", "background.md"), "utf8");
+  assert.match(root, /title: Notes that matter/);
+  assert.match(root, /# Notes that matter/);
+});
+
+test("init creates none of the six root-page files", (t) => {
+  const project = makeEmptyProject(t);
+  const r = runBrain(project, ["init", "--no-wire"]);
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  for (const slug of ["background", "architecture", "flow", "mindmap", "stack", "roadmap"]) {
+    assert.ok(!existsSync(join(project, "brain", `${slug}.md`)), `${slug}.md must be on-demand`);
+  }
+});
+
+test("update-root rejects a body whose first line is not an H1", (t) => {
+  const project = makeEmptyProject(t);
+  let r = runBrain(project, ["init", "--no-wire"]);
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  r = runBrain(project, ["update-root", "background"], {
+    input: "An introductory paragraph\n\n# Too late\n",
+  });
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /must start with a Markdown H1 title/);
+  assert.ok(!existsSync(join(project, "brain", "background.md")));
+});
+
+test("update-root normalizes an existing legacy root page without an H1", (t) => {
+  const project = makeEmptyProject(t);
+  let r = runBrain(project, ["init", "--no-wire"]);
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  writeFileSync(
+    join(project, "brain", "background.md"),
+    "---\nslug: background\ntitle: Legacy project notes\nrole: project context\n---\n\nOld notes.\n",
+  );
+  r = runBrain(project, ["update-root", "background"], { input: "Updated legacy notes.\n" });
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  const root = readFileSync(join(project, "brain", "background.md"), "utf8");
+  assert.match(root, /# Legacy project notes/);
+  assert.match(root, /Updated legacy notes\./);
+});
+
+test("update-root quotes a title that contains YAML-special characters", (t) => {
+  const project = makeEmptyProject(t);
+  let r = runBrain(project, ["init", "--no-wire"]);
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  r = runBrain(project, ["update-root", "background"], {
+    input: '# Notes: the "real" ones\n\nA reason to keep this page.\n',
+  });
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  const root = readFileSync(join(project, "brain", "background.md"), "utf8");
+  assert.match(root, /title: "Notes: the \\"real\\" ones"/);
+  assert.match(root, /# Notes: the "real" ones/);
+});
+
+test("update-root rejects a missing H1 on a page that already has one and leaves the file unchanged", (t) => {
+  const project = makeEmptyProject(t);
+  let r = runBrain(project, ["init", "--no-wire"]);
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  r = runBrain(project, ["update-root", "background"], {
+    input: "# Notes that matter\n\nA real reason to create this page.\n",
+  });
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  const before = readFileSync(join(project, "brain", "background.md"), "utf8");
+  r = runBrain(project, ["update-root", "background"], { input: "Updated notes without a heading.\n" });
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /must start with a Markdown H1 title/);
+  assert.equal(readFileSync(join(project, "brain", "background.md"), "utf8"), before);
+});
+
+test("update-root rejects an overlong H1 title", (t) => {
+  const project = makeEmptyProject(t);
+  let r = runBrain(project, ["init", "--no-wire"]);
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  r = runBrain(project, ["update-root", "background"], {
+    input: `# ${"a".repeat(201)}\n\nUseful content.\n`,
+  });
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /1 to 200 characters/);
+  assert.ok(!existsSync(join(project, "brain", "background.md")));
+});
+
+test("update-root rejects a heading-only root page", (t) => {
+  const project = makeEmptyProject(t);
+  let r = runBrain(project, ["init", "--no-wire"]);
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  r = runBrain(project, ["update-root", "background"], { input: "# Just a title\n" });
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /meaningful content/);
+  assert.ok(!existsSync(join(project, "brain", "background.md")));
+});
+
+test("update-root rejects placeholder headings and comments after its H1", (t) => {
+  const project = makeEmptyProject(t);
+  let r = runBrain(project, ["init", "--no-wire"]);
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  r = runBrain(project, ["update-root", "background"], { input: "# Just a title\n\n## Placeholder\n" });
+  assert.notEqual(r.status, 0);
+  r = runBrain(project, ["update-root", "background"], { input: "# Just a title\n\n<!-- placeholder -->\n" });
+  assert.notEqual(r.status, 0);
+  assert.ok(!existsSync(join(project, "brain", "background.md")));
+});
+
 test("init scaffolds into brainRoot when preferences redirect", (t) => {
   const project = makeEmptyProject(t);
   const external = join(project, "external-brain");
@@ -258,7 +368,7 @@ test("init scaffolds into brainRoot when preferences redirect", (t) => {
   const r = runBrain(project, ["init", "--no-wire"]);
   assert.equal(r.status, 0, r.stderr || r.stdout);
   assert.ok(existsSync(join(project, "BRAIN.md")));
-  assert.ok(existsSync(join(external, "background.md")));
+  assert.ok(!existsSync(join(external, "background.md")));
   assert.ok(existsSync(join(external, "pages")));
   assert.ok(!existsSync(join(project, "brain", "background.md")));
 });

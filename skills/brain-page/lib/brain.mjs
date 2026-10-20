@@ -23,7 +23,7 @@ export const ROOT = process.cwd();
 /**
  * Resolve the brain directory. Order:
  *   1. `./.mindmux/preferences.json` with a `brainRoot` field — used as the brain
- *      root directly (it contains `pages/` and the six root pages). Absolute paths
+ *      root directly (it contains `pages/` and any on-demand root pages). Absolute paths
  *      are taken verbatim; relative paths are resolved against the cwd.
  *   2. Fallback: `<cwd>/brain`.
  * Resolution is robust: a missing file, broken JSON, or absent `brainRoot` all
@@ -54,14 +54,14 @@ export const BRAIN_DIR_SOURCE = BRAIN.source;
 export const PAGES_DIR = join(BRAIN_DIR, "pages");
 export const INDEX_PATH = join(BRAIN_DIR, "index.md");
 
-/** The six fixed root pages, with their canonical title + role. */
+/** The six fixed root-page storage slots and their semantic role. */
 export const ROOT_PAGE_META = {
-  background: { title: "Project background", role: "project background" },
-  architecture: { title: "System architecture", role: "system architecture" },
-  flow: { title: "Key flows", role: "key flows" },
-  mindmap: { title: "Feature mindmap", role: "feature mindmap" },
-  stack: { title: "Tech stack", role: "tech-stack choices" },
-  roadmap: { title: "Roadmap", role: "milestones" },
+  background: { role: "project background" },
+  architecture: { role: "system architecture" },
+  flow: { role: "key flows" },
+  mindmap: { role: "feature mindmap" },
+  stack: { role: "tech-stack choices" },
+  roadmap: { role: "milestones" },
 };
 
 /** The six fixed root page slugs (ordered). */

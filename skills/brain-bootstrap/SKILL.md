@@ -1,11 +1,11 @@
 ---
 name: brain-bootstrap
-description: Seed a freshly-scaffolded brain with real project knowledge — on an existing (brownfield) project read the code, docs, and git log to draft the six root pages and capture key historical decisions; on a near-empty (greenfield) project interview the user. Every write goes through the `brain` CLI. Run it after brain-setup.
+description: Seed a freshly-scaffolded brain with real project knowledge — on an existing (brownfield) project read the code, docs, and git log, then draft only the root pages that have meaningful content and capture key historical decisions; on a near-empty (greenfield) project interview the user. Every write goes through the `brain` CLI. Run it after brain-setup.
 ---
 
 # brain-bootstrap
 
-`brain-setup` scaffolds an **empty** brain — six root-page templates plus an empty `pages/`. This skill fills it with real, durable project knowledge for the first time. It is the bridge between "a brain exists" and "the brain is worth reading".
+`brain-setup` scaffolds an **empty** brain — no root pages and an empty `pages/`. This skill fills it with real, durable project knowledge for the first time. It is the bridge between "a brain exists" and "the brain is worth reading".
 
 You gather information by **reasoning over the project itself** — reading code, docs, and `git log`, or interviewing the user — but you **never write the brain by hand**. Every landing of knowledge is a `brain` CLI subcommand.
 
@@ -32,16 +32,14 @@ Gather from three sources, then **synthesize** (do not transcribe):
 2. **Existing docs** — `README`, `docs/`, `CONTRIBUTING`, design notes. Good for stated intent, goals, and naming.
 3. **`git log`** — read the commit messages (`git log --oneline -n 200` and spot-read full messages for the interesting ones). Mine them for the **real decisions** that were made over time.
 
-### Draft the six root pages
+### Draft only the needed root pages
 
 Write each with `echo "<body>" | brain update-root <slug>` (body on stdin). Lean on ` ```mermaid ` blocks (graph / sequenceDiagram / mindmap / gantt) to keep them visual.
 
-- `architecture` — layers, modules, boundaries, a mermaid `graph`. **Inferable from code** — write it with confidence.
-- `stack` — domain / choice / rationale table from the dependencies and how they're used. **Inferable from code.**
-- `flow` — the end-to-end path of a typical request/operation, a mermaid `sequenceDiagram`. Inferable where the entry points and call paths are clear.
-- `mindmap` — main feature branches from the project root, a mermaid `mindmap`. Inferable from the module/feature layout.
-- `background` — why the project exists / goals / non-goals / target users. **Often NOT inferable from code** — see the guardrails.
-- `roadmap` — milestones, a mermaid `gantt`. **Usually NOT inferable from code** — see the guardrails.
+- Consider `architecture` for layers, modules, boundaries, and a mermaid `graph` when this is useful and inferable from code.
+- Consider `stack` for a domain / choice / rationale table when real decisions are evident from dependencies and usage.
+- Consider `flow` for an end-to-end path and `mindmap` for feature structure only where there is enough evidence to explain them.
+- Consider `background` and `roadmap` only with grounded user intent; do not invent goals or plans.
 
 ### Capture key historical decisions as pages
 
@@ -76,7 +74,7 @@ There is nothing to read, so **switch to an interview.** Ask open-ended question
 From the answers:
 
 - Seed `background` (goal / target users / non-goals) with `update-root background` — this is the primary greenfield deliverable.
-- If the user already has a sense of the tech choices or milestones, draft `stack` and/or `roadmap` as early sketches with `update-root`. Mark them as provisional. Leave the others as their templates until there's something real to say — don't invent `architecture`/`flow`/`mindmap` for code that doesn't exist yet.
+- If the user already has a sense of the tech choices or milestones, draft `stack` and/or `roadmap` as early sketches with `update-root`. Mark them as provisional. Leave other slots absent until there is something real to say — don't invent `architecture`/`flow`/`mindmap` for code that doesn't exist yet.
 
 ---
 

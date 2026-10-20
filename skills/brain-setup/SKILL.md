@@ -48,7 +48,7 @@ Branch on the resolved state:
 
 - **`populated: true` → the brain already exists. Do NOT scaffold.** Tell the user the brain lives at `<resolved dir>`. If `source: brainRoot`, make it explicit: *"this project's brain is redirected to an external directory (`<resolved dir>`) and is managed there — leaving it untouched."* Then continue to step 3 (wire) and the optional hooks (steps 4–5). Never lay down a local `./brain` in this case.
 
-- **`populated: false` → scaffold the skeleton into the resolved directory** (the `brainRoot` target when redirected, otherwise `./brain`). Copy `assets/brain/` → `<resolved dir>/` — this brings the six root page templates (`background` / `architecture` / `flow` / `mindmap` / `stack` / `roadmap`), a generated `index.md`, and an empty `pages/` directory. Copy each destination file **only if it does not already exist** (never overwrite). **Never create a second local `./brain` when `source: brainRoot`** — always scaffold at the resolved path. After copying, run `reindex` so the index reflects the present pages:
+- **`populated: false` → scaffold the empty brain into the resolved directory** (the `brainRoot` target when redirected, otherwise `./brain`). Copy the index/schema and an empty `pages/` directory, but do **not** create root pages. The six root slots (`background` / `architecture` / `flow` / `mindmap` / `stack` / `roadmap`) are created only when meaningful content is ready. Copy each destination file **only if it does not already exist** (never overwrite). **Never create a second local `./brain` when `source: brainRoot`** — always scaffold at the resolved path. After copying, run `reindex` so the index reflects the present pages:
 
   ```
   node <brain-page-bundle>/bin/brain.mjs reindex
@@ -124,8 +124,8 @@ CLI reads if the client does not expose a supported restoration event.
 
 ## After setup
 
-The scaffold leaves the brain empty — six root page **templates** plus an empty `pages/`. The valuable next step is to **seed it with real project knowledge**, and that is exactly what the **brain-bootstrap** skill does:
+The scaffold leaves the brain empty — an empty `pages/` directory and no root pages. The valuable next step is to **seed it with real project knowledge**, and that is exactly what the **brain-bootstrap** skill does:
 
-> **Recommend the user run the brain-bootstrap skill next.** On an existing (brownfield) project it reads the code, docs, and `git log` to draft the six root pages and capture the key historical decisions; on a near-empty (greenfield) project it interviews the user to seed `background` and friends. brain-setup does **not** run it automatically — initialization and knowledge-seeding are separate steps, so the user stays in control of what gets written.
+> **Recommend the user run the brain-bootstrap skill next.** On an existing (brownfield) project it reads the code, docs, and `git log`, then drafts only the root pages that have meaningful content and captures key historical decisions; on a near-empty (greenfield) project it interviews the user before creating any. brain-setup does **not** run it automatically — initialization and knowledge-seeding are separate steps, so the user stays in control of what gets written.
 
 Also point them at: read `BRAIN.md`, then use the **brain-page** skill to author or modify pages directly and the **brain-ingest** skill to digest scattered input into the brain. **Every read and write goes through the `brain` CLI — never hand-edit a brain file.**

@@ -113,6 +113,17 @@ function ensureBrainExists() {
   if (!existsSync(BRAIN_DIR)) fail(`no brain directory found at ${BRAIN_DIR} — run brain init (or the brain-setup skill) first`);
 }
 
+function hasMeaningfulRootContent(body) {
+  const remainder = body.split("\n").slice(1).join("\n").replace(/<!--[\s\S]*?-->/g, "");
+  return remainder.split("\n").some((line) => {
+    if (/^\s{0,3}#{1,6}\s+/.test(line) || /^\s*```/.test(line)) return false;
+    const visible = line
+      .replace(/^\s*(?:[-*+]|\d+[.)])\s+/, "")
+      .trim();
+    return Boolean(visible) && !/^(?:[-*_]\s*){3,}$/.test(visible);
+  });
+}
+
 // ---- subcommands ------------------------------------------------------------
 
 function cmdCreatePage(flags) {
@@ -279,29 +290,39 @@ async function cmdUpdateRoot(positional, flags) {
   if (!ROOT_PAGE_SLUGS.includes(slug))
     fail(`invalid root slug "${slug}" (one of ${ROOT_PAGE_SLUGS.join(", ")})`);
 
-  const meta = ROOT_PAGE_META[slug];
   let body = (await readStdin()).replace(/^﻿/, "").trim();
   if (!body) fail("update-root reads the page body from stdin, but stdin was empty");
-
-  // Guarantee the canonical H1 heading is present exactly once at the top.
-  const canonicalH1 = `# ${meta.title}`;
-  const firstLine = body.split("\n", 1)[0].trim();
-  if (firstLine !== canonicalH1) {
-    // Drop any other leading H1 the author may have written, then prepend ours.
-    if (/^#\s+/.test(firstLine)) body = body.split("\n").slice(1).join("\n").trim();
-    body = `${canonicalH1}\n\n${body}`.trim();
+  let title = body.split("\n", 1)[0].match(/^#\s+(.+?)\s*$/)?.[1]?.trim();
+  // Only a legacy root page whose stored body has no H1 may omit the heading.
+  // Its frontmatter title becomes the H1. Pages that already start with an H1,
+  // including ones just created by update-root, must author the heading again.
+  if (!title && existsSync(rootPagePath(slug))) {
+    const existing = loadDoc(rootPagePath(slug));
+    const existingFirstLine = String(existing.body ?? "").replace(/^\uFEFF/, "").trim().split("\n", 1)[0] ?? "";
+    if (!/^#\s+\S/.test(existingFirstLine)) {
+      const legacyTitle = String(existing.frontmatter.title ?? "").trim();
+      if (legacyTitle) {
+        body = `# ${legacyTitle}\n\n${body}`;
+        title = legacyTitle;
+      }
+    }
+  }
+  if (!title) fail("update-root body must start with a Markdown H1 title: # Your title");
+  if (title.length > 200) fail("update-root title must contain 1 to 200 characters");
+  if (!hasMeaningfulRootContent(body)) {
+    fail("update-root body must contain meaningful content after its title");
   }
 
   const stamp = nowStamp();
   const fm = [
     `slug: ${slug}`,
-    `title: ${yamlScalar(meta.title)}`,
-    `role: ${yamlScalar(meta.role)}`,
+    `title: ${yamlScalar(title)}`,
+    `role: ${yamlScalar(ROOT_PAGE_META[slug].role)}`,
     `updated: ${yamlScalar(stamp)}`,
   ].join("\n");
   const content = `---\n${fm}\n---\n\n${body}\n`;
   writeFileAtomic(rootPagePath(slug), content);
-  console.log(`brain: rewrote root page brain/${slug}.md (canonical H1 ensured, no timeline)`);
+  console.log(`brain: rewrote root page brain/${slug}.md (authored H1 preserved, no timeline)`);
 }
 
 function cmdReindex() {
@@ -567,7 +588,9 @@ function cmdInit(rest) {
     mkdirSync(BRAIN_DIR, { recursive: true });
     mkdirSync(PAGES_DIR, { recursive: true });
     for (const name of readdirSync(skeletonSrc)) {
-      if (name === "pages") continue; // pages/ scaffolded empty (PAGES_DIR above)
+      // Root pages are deliberately on-demand. Index/schema are scaffolded,
+      // while the six root-page slots are created only by update-root.
+      if (name === "pages" || ROOT_PAGE_SLUGS.includes(name.replace(/\.md$/, ""))) continue;
       const from = join(skeletonSrc, name);
       const to = join(BRAIN_DIR, name);
       if (copyIfMissing(from, to)) {
@@ -735,7 +758,7 @@ Writes (correct-by-construction):
   append-timeline --id <kebab> --kind <k> --summary <s> [--source s] [--affects a,b]
   archive-page    --id <kebab> [--reversal-summary s]
   set-tags        --id <kebab> --tags a,b,c
-  update-root     <slug>                                        (body read from stdin)
+  update-root     <slug>                                        (stdin body must start with # Title)
 
 Project setup:
   init            [--no-wire] [--agent …]   ensure BRAIN.md, scaffold empty brain, default-wire CLAUDE.md + AGENTS.md
