@@ -135,7 +135,7 @@ brain read-page my-decision                  # read a page
 brain create-page --id my-decision --category decision --title "Use X over Y"
 echo "the new understanding" | brain update-truth --id my-decision --summary "why it changed"
 brain append-timeline --id my-decision --kind evidence --summary "benchmark confirmed it"
-echo "## Overview …" | brain update-root architecture
+printf '# System architecture\n\n## Overview\n\nRequests enter through the gateway.\n' | brain update-root architecture
 brain reindex && brain lint-links
 ```
 

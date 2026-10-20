@@ -293,13 +293,18 @@ async function cmdUpdateRoot(positional, flags) {
   let body = (await readStdin()).replace(/^﻿/, "").trim();
   if (!body) fail("update-root reads the page body from stdin, but stdin was empty");
   let title = body.split("\n", 1)[0].match(/^#\s+(.+?)\s*$/)?.[1]?.trim();
-  // Existing pre-H1 Root Pages remain editable. Their old frontmatter title
-  // supplies the first H1 on the next write; new slots must always author it.
+  // Only a legacy root page whose stored body has no H1 may omit the heading.
+  // Its frontmatter title becomes the H1. Pages that already start with an H1,
+  // including ones just created by update-root, must author the heading again.
   if (!title && existsSync(rootPagePath(slug))) {
-    const legacyTitle = String(loadDoc(rootPagePath(slug)).frontmatter.title ?? "").trim();
-    if (legacyTitle) {
-      body = `# ${legacyTitle}\n\n${body}`;
-      title = legacyTitle;
+    const existing = loadDoc(rootPagePath(slug));
+    const existingFirstLine = String(existing.body ?? "").replace(/^\uFEFF/, "").trim().split("\n", 1)[0] ?? "";
+    if (!/^#\s+\S/.test(existingFirstLine)) {
+      const legacyTitle = String(existing.frontmatter.title ?? "").trim();
+      if (legacyTitle) {
+        body = `# ${legacyTitle}\n\n${body}`;
+        title = legacyTitle;
+      }
     }
   }
   if (!title) fail("update-root body must start with a Markdown H1 title: # Your title");
@@ -753,7 +758,7 @@ Writes (correct-by-construction):
   append-timeline --id <kebab> --kind <k> --summary <s> [--source s] [--affects a,b]
   archive-page    --id <kebab> [--reversal-summary s]
   set-tags        --id <kebab> --tags a,b,c
-  update-root     <slug>                                        (body read from stdin)
+  update-root     <slug>                                        (stdin body must start with # Title)
 
 Project setup:
   init            [--no-wire] [--agent …]   ensure BRAIN.md, scaffold empty brain, default-wire CLAUDE.md + AGENTS.md

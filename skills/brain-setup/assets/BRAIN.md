@@ -68,7 +68,7 @@ Project-wide and structured when meaningful knowledge exists. New brains start w
 
 Rules:
 
-- **Fixed in number, on-demand in presence.** `brain update-root <slug>` creates or rewrites one slot from stdin. The body must start with an authored `# Title`; the CLI regenerates frontmatter and derives the displayed title from that H1.
+- **Fixed in number, on-demand in presence.** `brain update-root <slug>` creates or rewrites one slot from stdin. The body must start with an authored `# Title`; the CLI regenerates frontmatter and derives the displayed title from that H1. An older root page whose stored body has no H1 may omit the heading on its next write; the stored title is inserted. Later writes to a page that already has an H1 must include one.
 - **No timeline** — a root page's history is carried by git.
 - **Read** a root page with `brain read-root <slug>`.
 - Lean on ` ```mermaid ` code blocks (graph / sequenceDiagram / mindmap / gantt) to make the content visual.

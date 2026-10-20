@@ -295,6 +295,34 @@ test("update-root normalizes an existing legacy root page without an H1", (t) =>
   assert.match(root, /Updated legacy notes\./);
 });
 
+test("update-root quotes a title that contains YAML-special characters", (t) => {
+  const project = makeEmptyProject(t);
+  let r = runBrain(project, ["init", "--no-wire"]);
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  r = runBrain(project, ["update-root", "background"], {
+    input: '# Notes: the "real" ones\n\nA reason to keep this page.\n',
+  });
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  const root = readFileSync(join(project, "brain", "background.md"), "utf8");
+  assert.match(root, /title: "Notes: the \\"real\\" ones"/);
+  assert.match(root, /# Notes: the "real" ones/);
+});
+
+test("update-root rejects a missing H1 on a page that already has one and leaves the file unchanged", (t) => {
+  const project = makeEmptyProject(t);
+  let r = runBrain(project, ["init", "--no-wire"]);
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  r = runBrain(project, ["update-root", "background"], {
+    input: "# Notes that matter\n\nA real reason to create this page.\n",
+  });
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  const before = readFileSync(join(project, "brain", "background.md"), "utf8");
+  r = runBrain(project, ["update-root", "background"], { input: "Updated notes without a heading.\n" });
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /must start with a Markdown H1 title/);
+  assert.equal(readFileSync(join(project, "brain", "background.md"), "utf8"), before);
+});
+
 test("update-root rejects an overlong H1 title", (t) => {
   const project = makeEmptyProject(t);
   let r = runBrain(project, ["init", "--no-wire"]);
